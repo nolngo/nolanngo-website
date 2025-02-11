@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #333;
+    }
+    .message {
+      font-size: 1.2em;
+      margin-top: 20px;
+    }
+    .venmo {
+      font-weight: bold;
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Thank You for Your Order!</h1>
+  <div class="message">
+    Your total amount is: $<span id="orderTotal"></span>
+  </div>
+  <div class="message">
+    Please send the payment to Nolan’s Venmo: <span class="venmo">@nolan-ngo</span>.
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const bagelFlavor = urlParams.get('bagelFlavor');
+    const quantity = urlParams.get('quantity');
+    const schmear1 = urlParams.get('schmear1');
+    const schmear2 = urlParams.get('schmear2');
+
+    const prices = {
+      bagel: 3.25,
+      schmear: {
+        "Plain": 2,
+        "Scallion": 2.25,
+        "Spicy Scallion": 2.25,
+        "Chili Crisp": 2.25,
+        "Raspberry Curry & Hot Honey": 2.25,
+        "Bischoff, Chocolate & Espresso Bean": 2.25,
+        "The Whole Lox": 3,
+        "Vegan Plain": 2.25,
+        "Vegan Scallion": 2.25,
+        "None": 0
+      }
+    };
+
+    const bagelCost = parseInt(quantity) * prices.bagel;
+    const schmear1Cost = prices.schmear[schmear1];
+    const schmear2Cost = prices.schmear[schmear2 || "None"];
+
+    const subtotal = bagelCost + schmear1Cost + schmear2Cost;
+    const tax = subtotal * 0.10;
+    const deliveryFee = 1;
+    const total = subtotal + tax + deliveryFee;
+
+    document.getElementById('orderTotal').textContent = total.toFixed(2);
+  </script>
+</body>
+</html>
