@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Days Since Last Tardy Arrival</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    #counter {
+      font-size: 4rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: #2563eb;
+    }
+    #lastReset {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      color: #374151;
+    }
+    button {
+      padding: 0.75rem 1.5rem;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      background: #dc2626;
+      color: white;
+      margin-bottom: 2rem;
+      transition: background 0.2s ease;
+    }
+    button:hover {
+      background: #b91c1c;
+    }
+    canvas {
+      max-width: 600px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>Days Since Last Tardy Arrival</h1>
+  <div id="counter">0</div>
+  <div id="lastReset">Last reset: N/A</div>
+<button id="resetBtn" onclick="confirmReset()">I Was Late 😞</button>
+
+<script>
+  let confirmTimeout;
+  let confirmState = false;
+
+  function confirmReset() {
+    const btn = document.getElementById("resetBtn");
+
+    if (!confirmState) {
+      // First click: ask for confirmation
+      confirmState = true;
+      btn.innerText = "Click again to confirm reset ⚠️";
+
+      // Reset back to normal after 5s
+      confirmTimeout = setTimeout(() => {
+        confirmState = false;
+        btn.innerText = "I Was Late 😞";
+      }, 5000);
+
+    } else {
+      // Second click: confirmed
+      clearTimeout(confirmTimeout);
+      confirmState = false;
+      btn.innerText = "I Was Late 😞";
+      resetCounter();
+    }
+  }
+</script>
+  <canvas id="streakChart"></canvas>
+
+  <script>
+    function getToday() {
+      return new Date().setHours(0,0,0,0); // midnight today
+    }
+
+    function getYesterday() {
+      return new Date().setHours(0,0,0,0) - 86400000; // 1 day before today
+    }
+
+    function updateCounter() {
+      const lastReset = localStorage.getItem("lastTardyDate");
+      if (lastReset) {
+        const days = Math.floor((getToday() - new Date(parseInt(lastReset))) / (1000*60*60*24));
+        document.getElementById("counter").innerText = days;
+        document.getElementById("lastReset").innerText = 
+          "Last reset: " + new Date(parseInt(lastReset)).toLocaleDateString();
+      } else {
+        document.getElementById("counter").innerText = 0;
+        document.getElementById("lastReset").innerText = "Last reset: N/A";
+      }
+    }
+
+    function resetCounter() {
+      const today = getToday();
+      localStorage.setItem("lastTardyDate", today);
+
+      // Save history for graph
+      let history = JSON.parse(localStorage.getItem("streakHistory") || "[]");
+      history.push({ date: today, streak: 0 });
+      localStorage.setItem("streakHistory", JSON.stringify(history));
+
+      updateCounter();
+      updateChart();
+    }
+
+    function initStartIfNeeded() {
+      if (!localStorage.getItem("lastTardyDate")) {
+        // Start at yesterday
+        localStorage.setItem("lastTardyDate", getYesterday());
+
+        // Initialize history
+        localStorage.setItem("streakHistory", JSON.stringify([
+          { date: getYesterday(), streak: 0 }
+        ]));
+      }
+    }
+
+    // --- Chart ---
+    let chart;
+    function updateChart() {
+      let history = JSON.parse(localStorage.getItem("streakHistory") || "[]");
+
+      let labels = history.map(e => new Date(e.date).toLocaleDateString());
+      let streaks = history.map((e, i) => {
+        if (i === 0) return 0;
+        const prevDate = history[i-1].date;
+        return Math.floor((e.date - prevDate) / (1000*60*60*24));
+      });
+
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById("streakChart"), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Streak Length (days)",
+            data: streaks,
+            borderColor: "#2563eb",
+            backgroundColor: "rgba(37,99,235,0.2)",
+            fill: true,
+            tension: 0.2
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    // Initialize
+    initStartIfNeeded();
+    updateCounter();
+    updateChart();
+  </script>
+</body>
+</html>
